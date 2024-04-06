@@ -1,7 +1,8 @@
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import auth from "../../firebase/firebase.config";
 import { useState } from "react";
 import { IoIosEyeOff,  IoMdEye } from "react-icons/io";
+import { Link } from "react-router-dom";
 
 const HeroRagister = () => {
   const [registerError, setRegisterError] = useState('');
@@ -9,9 +10,12 @@ const HeroRagister = () => {
   const [passShow, setPassShow] = useState(false);
     const handleRegister = e => {
         e.preventDefault();
+        const name = e.target.name.value;
         const email = e.target.email.value;
         const password = e.target.password.value;
-        console.log(email, typeof password.length);
+        const terms = e.target.terms.checked;
+        console.log(name, email, password, terms);
+        // clear error and success
         setRegisterError('');
         setRegSuccess('');
         if(password.length < 6) {
@@ -22,10 +26,27 @@ const HeroRagister = () => {
           setRegisterError('You password should have at least one uppercase character.');
           return
         }
+        else if(!terms){
+          setRegisterError('Please accept our terms & condition');
+          return
+        }
         createUserWithEmailAndPassword(auth, email, password)
         .then(result => {
           console.log(result.user);
-          setRegSuccess('Successfully created this email account')
+          setRegSuccess('Successfully created this email account');
+          // updated profile //
+          updateProfile(result.user, {
+            displayName: name,
+            photoURL: "https://example.com/jane-q-user/profile.jpg"
+          })
+          // sent email verifications //
+          sendEmailVerification(result.user)
+          .then(() => {
+            alert('checked your email & verify your account');
+          })
+          .catch(error=> {
+            console.log(error);
+          })
         })
         .catch(error => {
           console.log(error.message);
@@ -41,6 +62,12 @@ const HeroRagister = () => {
     </div>
     <div className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
       <form onSubmit={handleRegister} className="card-body">
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Name</span>
+          </label>
+          <input type="text" name="name" placeholder="Your Name" className="input input-bordered" required />
+        </div>
         <div className="form-control">
           <label className="label">
             <span className="label-text">Email</span>
@@ -60,11 +87,18 @@ const HeroRagister = () => {
           </div>
           
         </div>
+        <div className="flex items-center gap-2">
+        <input type="checkbox" name="terms" id="terms" />
+        <label htmlFor="terms"><a href="/">accepts our terms & condition</a></label>
+        </div>
         <div className="form-control">
           <input className="btn btn-primary" type="submit" value="Submit" />
           <label className="label">
             <a href="#" className="label-text-alt link link-hover">Forgot password?</a>
           </label>
+        </div>
+        <div>
+          <Link to='/login'>Have an account? Go to login</Link>
         </div>
       </form>
       {
